@@ -50,3 +50,14 @@ Each of these files does the same thing with the same imports, but writes it dif
 Practically, this means that the _build context_ is used as a dependency graph, deduplication measure, and symbol lookup table.
 
 All flavors of imports will cause the entire library to be imported and symbols added to the build context.
+
+List out those crazy import formats for me
+====
+
+- `import foo`
+- `from foo import bar`
+- `import foo as quux`
+- `from foo import bar as quux`
+- `from foo import *`
+
+The last one imports all of them without namespacing, and cannot have `as` aliasing.
