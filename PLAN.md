@@ -17,7 +17,7 @@ Becomes
 What are the compile modes?
 ====
 
-`user` mode will only combine non-system search paths, specifically the local directory and the [PYTHONPATH](https://docs.python.org/2/using/cmdline.html#envvar-PYTHONPATH). System imports are deduplicated, hoisted, and rewritten so that any `import x as y` or `from x import y` call (and the references to those functions) are translated to something sane.
+`user` mode will only combine non-system search paths, specifically the local directory and the [PYTHONPATH](https://docs.python.org/2/using/cmdline.html#envvar-PYTHONPATH). System imports are deduplicated, hoisted, and rewritten so that any `import x as y` or `from x import y` call (and the references to those functions) are translated to something sane and predictable across the combined files.
 
 `all` mode will combine _all_ search paths, including system search paths. This means doing `import re` will actually pull the regex implementation from the workstation's system python into the combined file.
 
@@ -31,9 +31,9 @@ Modules will be taken from the workstation's search path and included. Search pa
 What are these contexts?
 ====
 
-A single build has a context. This context contains a dependency graph of which files require which other files, and a "symbol table" for translating calls to other imports.
+A single build has a context. This context contains a dependency graph of which files require which other files, and a master "symbol table" for recording imports already used by other files.
 
-A single file has a context, too. This is primarily used to map the file's function terminology back to the build's terminology.
+A single file has a context, too. This is primarily used to map the file's function terminology back to the build's terminology, so that all files' end up using the same import names regardless of what convention they picked when written.
 
 For instance, let's say we have `foo.py` and `bar.py`, which each reference functions from `baz.py`.
 
@@ -45,11 +45,11 @@ For instance, let's say we have `foo.py` and `bar.py`, which each reference func
     from baz import findMessage as message
     print(message())
 
-Each of these files does the same thing with the same imports, but writes it differently. The _file context_ for `foo.py` will translate all occurrences of "baz.findMessage()" to whatever the _build context_ has for that symbol (probably "baz_ZC_findMessage()", see the first section). Concurrently, the _file context_ for `bar.py` will translate all occurrences of "message()" to the _build context_'s symbol table for that same entry.
+Each of these files does the same thing with the same imports, but writes it differently. The _file context_ for `foo.py` will translate all occurrences of "baz.findMessage()" to whatever the _build context_ has for that symbol (probably "baz_ZC_findMessage()", see the first section). Concurrently, the _file context_ for `bar.py` will translate all occurrences of "message()" to the _build context_'s symbol table for that same entry, so when combined, both of these files will look identical.
 
 Practically, this means that the _build context_ is used as a dependency graph, deduplication measure, and symbol lookup table.
 
-All flavors of imports will cause the entire library to be imported and symbols added to the build context.
+All flavors of imports (that do not point at a member of the final combined file) will cause the entire library to be imported and symbols added to the build context.
 
 List out those crazy import formats for me
 ====
@@ -60,4 +60,4 @@ List out those crazy import formats for me
 - `from foo import bar as quux`
 - `from foo import *`
 
-The last one imports all of them without namespacing, and cannot have `as` aliasing.
+The last one imports all of them without namespacing, and cannot have `as` aliasing. Combining it will require reading all public functions and constants from that module, creating a fake namespace for it, and adding all of them to the build context symbol table.

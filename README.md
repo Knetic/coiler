@@ -6,7 +6,7 @@ Coiler is a tool to create a single \*.pyc file from multiple \*.py files. It ca
 Why would I use this?
 ====
 
-Creating a single executable has a lot of operational benefits. Library version conflicts, installation issues, and module naming become problems at _build time_, and cannot be encountered at runtime. This greatly reduces the amount of fear and pain involved in deploying code to machines that were not used to develop it. It also prevents the need to rigorously maintain a production machine's libraries separately from the application(s) running on them. And of course, this eliminates the need to install a bunch of other non-core tools like `pip`, `easy_install`, `distutils`, or whatever other pseudo-packaging tool is out there - your executable becomes a single file that can be run on any machine with a Python installation (not as good as being able to run on any machine period, but still pretty good for Python).
+Creating a single executable has a lot of operational benefits. Library version conflicts, installation issues, and module naming become problems at _build time_, and cannot be encountered at runtime. This greatly reduces the amount of fear and pain involved in deploying code to machines that were not used to develop it. It also prevents the need to rigorously maintain a production machine's libraries separately from the application(s) running on them (and so obsoletes `virtualenv`). And of course, this eliminates the need to install a bunch of other non-core tools like `pip`, `easy_install`, `distutils`, or whatever other pseudo-packaging tool is out there - your executable becomes a single file that can be run on any machine with a Python installation (not as good as being able to run on any machine period, but still pretty good for Python).
 
 Of course, by having a single executable file for your script, you no longer need to use python-specific packaging methods (like eggs or zips). Instead, you can take advantage of serious packaging formats like \*.rpm and \*.deb, which even further reduces your operational overhead.
 
@@ -18,3 +18,8 @@ What is required?
 ====
 
 You will need the tools `python` and the `compileall` module available on the default system search path. It doesn't matter which version of python you have, but bear in mind that `coiler` will use that default version of python to discover library search paths and compile scripts - so be sure it's the version you want to use.
+
+Be real with me, should I really use this?
+====
+
+No. This is not yet production-ready.
