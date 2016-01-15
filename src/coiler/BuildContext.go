@@ -34,3 +34,11 @@ func NewBuildContext() *BuildContext {
 func (this *BuildContext) WriteCombinedOutput(target string) error {
 	return nil
 }
+
+/*
+	Searches this context's lookup paths to find the appropriate file to provide the given [module].
+*/
+func (this *BuildContext) FindSourcePath(module string) string {
+
+	return ""
+}
