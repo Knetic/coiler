@@ -58,6 +58,60 @@ func Parse(inputPath string, outputPath string) error {
 }
 
 func parse(path string, context *BuildContext) error {
+
+	var fileContext *FileContext
+	var contents []byte
+	var sourceChannel chan string
+	var err error
+
+	sourceChannel = make(chan string)
+
+	contents, err = ioutil.ReadFile(path)
+	if(err != nil) {
+		return err
+	}
+
+	fileContext, err = NewFileContext(path, context)
+	if(err != nil) {
+		return err
+	}
+
+	go readLines(string(contents), sourceChannel)
+
+	for line := range sourceChannel {
+		err = parseLine(line, fileContext, context)
+		if(err != nil) {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func readLines(source string, output chan string) {
+
+	var newlineIndex int
+
+	defer close(output)
+
+	newlineIndex = -1
+
+	for newlineIndex != len(source) {
+
+		source = source[newlineIndex+1:]
+		newlineIndex = strings.Index(source, "\n")
+
+		if(newlineIndex < 0) {
+			newlineIndex = len(source)
+		}
+
+		output <- string(source[0:newlineIndex])
+	}
+}
+
+func parseLine(line string, fileContext *FileContext, buildContext *BuildContext) error {
+
+	fmt.Printf("Line: %s\n", line)
 	return nil
 }
 

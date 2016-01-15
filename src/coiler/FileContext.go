@@ -1,5 +1,9 @@
 package coiler
 
+import (
+	"path/filepath"
+)
+
 type FileContext struct {
 
 	context *BuildContext
@@ -15,4 +19,23 @@ type FileContext struct {
 
 	// the namespace of the file (usually just the name).
 	namespace string
+}
+
+func NewFileContext(path string, context *BuildContext) (*FileContext, error) {
+
+	var ret *FileContext
+	var err error
+
+	ret = new(FileContext)
+
+	ret.fullPath, err = filepath.Abs(path)
+	if(err != nil) {
+		return nil, err
+	}
+
+	ret.context = context
+	ret.namespace = filepath.Base(ret.fullPath)
+	ret.namespace = ret.namespace[0:len(ret.namespace)-3] // trim *.py extension
+
+	return ret, nil
 }
