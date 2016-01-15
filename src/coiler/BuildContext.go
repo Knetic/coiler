@@ -30,3 +30,7 @@ func NewBuildContext() *BuildContext {
 
 	return ret
 }
+
+func (this *BuildContext) WriteCombinedOutput(target string) error {
+	return nil
+}

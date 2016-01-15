@@ -1,10 +1,22 @@
 package main
 
 import (
-  "fmt"
+	"coiler"
+	"fmt"
+	"os"
 )
 
 func main() {
 
-  fmt.Printf("Hello, coiler\n")
+	var settings RunSettings
+	var err error
+
+	settings = ParseRunSettings()
+
+	err = coiler.Parse(settings.EntryPointPath, settings.OutputPath)
+	if(err != nil) {
+		fmt.Fprintf(os.Stderr, "%v\n", err)
+		os.Exit(1)
+		return
+	}
 }
