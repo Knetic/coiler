@@ -55,8 +55,8 @@ List out those crazy import formats for me
 ====
 
 - `import foo`
-- `from foo import bar`
 - `import foo as quux`
+- `from foo import bar`
 - `from foo import bar as quux`
 - `from foo import *`
 
