@@ -39,3 +39,11 @@ func NewFileContext(path string, context *BuildContext) (*FileContext, error) {
 
 	return ret, nil
 }
+
+func (this *FileContext) AddDependency(module string) {
+	this.dependencies = append(this.dependencies, module)
+}
+
+func (this *FileContext) AddLocalSymbol(localName, qualifiedName string) {
+	this.localSymbols[localName] = qualifiedName
+}

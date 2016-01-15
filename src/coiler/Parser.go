@@ -45,6 +45,9 @@ func Parse(inputPath string, outputPath string) error {
 		return err
 	}
 
+	fmt.Println("Parsed build context:")
+	fmt.Println(context.String())
+
 	precompiledOutputPath, err = ioutil.TempDir("", "coiler")
 	if(err != nil) {
 		return err
@@ -141,7 +144,7 @@ func parseLine(line string, fileContext *FileContext, buildContext *BuildContext
 */
 func parseImport(line string, fileContext *FileContext, buildContext *BuildContext) {
 
-	//var module, alias, individual string
+	var module, fullPath string
 	var matches []string
 
 	// imports can happen in any number of wacky forms
@@ -173,7 +176,23 @@ func parseImport(line string, fileContext *FileContext, buildContext *BuildConte
 
 	matches = standardImportRegex.FindStringSubmatch(line)
 	if(len(matches) > 0) {
-		fmt.Printf("Found normal import '%s'\n", matches[1])
+
+		module = matches[1]
+		fmt.Printf("Found normal import '%s'\n", module)
+
+		if(!buildContext.IsFileImported(module)) {
+
+			fullPath = buildContext.FindSourcePath(module)
+
+			if(fullPath != "") {
+
+				parse(fullPath, buildContext)
+				buildContext.AddImportedFile(module)
+				fileContext.AddDependency(module)
+			} else {
+				buildContext.AddExternalDependency(module)
+			}
+		}
 		return
 	}
 }
