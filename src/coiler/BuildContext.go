@@ -5,6 +5,9 @@ package coiler
 */
 type BuildContext struct {
 
+	// A graph that represents all dependencies (and their interrelations) used in this build run.
+	dependencies *DependencyGraph
+
 	// Contains a mapping of fully-qualified function names and variable names
 	// and the translated version of each.
 	symbols map[string]string
@@ -12,4 +15,18 @@ type BuildContext struct {
 	// represents every file that has been functionally included (if not necessarily combined into)
 	// the output file for this build run.
 	importedFiles []string
+
+	// the paths used for external module lookups.
+	// different modes of operation mutate this.
+	lookupPaths []string
+}
+
+func NewBuildContext() *BuildContext {
+
+	var ret *BuildContext
+
+	ret = new(BuildContext)
+	ret.dependencies = NewDependencyGraph()
+
+	return ret
 }
