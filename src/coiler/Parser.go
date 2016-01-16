@@ -3,7 +3,7 @@ package coiler
 import (
 	"io"
 	"io/ioutil"
-	"path"
+	"path/filepath"
 	"fmt"
 	"os"
 	"os/exec"
@@ -62,7 +62,8 @@ func Parse(inputPath string, outputPath string) error {
 		return err
 	}
 
-	baseName = path.Base(outputPath)
+	baseName = filepath.Base(outputPath)
+	baseName = strings.TrimSuffix(baseName, filepath.Ext(baseName))
 	precompiledName = fmt.Sprintf("%s/%s.py", precompiledOutputPath, baseName)
 
 	if(strings.HasSuffix(baseName, ".pyc")) {
@@ -104,6 +105,7 @@ func parse(path string, context *BuildContext) error {
 		return err
 	}
 
+	context.AddDependency(fileContext)
 	go readLines(string(contents), sourceChannel)
 
 	for line := range sourceChannel {
@@ -280,6 +282,7 @@ func copyFile(source, target string) error {
 	if(err != nil) {
 		return err
 	}
+	targetFile.Chmod(0755)
 	defer targetFile.Close()
 
 	_, err = io.Copy(sourceFile, targetFile)

@@ -3,8 +3,10 @@ package coiler
 import (
 	"strings"
 	"fmt"
+	"os"
 	"os/exec"
 	"regexp"
+	"io"
 	"path/filepath"
 )
 
@@ -83,6 +85,60 @@ func (this *BuildContext) IsFileImported(module string) bool {
 	Takes the current build context and writes a single combined source file to the given [targetPath]
 */
 func (this *BuildContext) WriteCombinedOutput(targetPath string) error {
+
+	var fileContexts []*FileContext
+	var outFile *os.File
+	var line string
+	var err error
+
+	outFile, err = os.Create(targetPath)
+	if(err != nil) {
+
+		outFile, err = os.Open(targetPath)
+		if(err != nil) {
+			return err
+		}
+	}
+	defer outFile.Close()
+
+	// write external dependencies first
+	for _, dependency := range this.externalDependencies {
+
+		line = fmt.Sprintf("import %v\n", dependency)
+		outFile.Write([]byte(line))
+	}
+
+	this.dependencies.DiscoverNeighbors()
+	fileContexts = this.dependencies.GetOrderedNodes()
+
+	for _, context := range fileContexts {
+
+		fmt.Printf("Writing context: %s\n", context.namespace)
+		err = this.writeTranslatedFile(context, outFile)
+		if(err != nil) {
+			return err
+		}
+	}
+	return nil
+}
+
+func (this *BuildContext) writeTranslatedFile(context *FileContext, outFile *os.File) error {
+
+	var sourceFile *os.File
+	var err error
+
+	sourceFile, err = os.Open(context.fullPath)
+	if(err != nil) {
+		return err
+	}
+	defer sourceFile.Close()
+
+	written, err := io.Copy(outFile, sourceFile)
+	if(err != nil) {
+		return err
+	}
+
+	fmt.Printf("Wrote %d bytes from '%s'\n", written, context.fullPath)
 	return nil
 }
 
@@ -92,6 +148,10 @@ func (this *BuildContext) WriteCombinedOutput(targetPath string) error {
 func (this *BuildContext) FindSourcePath(module string) string {
 
 	return this.lookupFiles[module]
+}
+
+func (this *BuildContext) AddDependency(context *FileContext) {
+	this.dependencies.AddNode(context)
 }
 
 func (this *BuildContext) AddExternalDependency(module string) {
