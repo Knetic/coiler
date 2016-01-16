@@ -24,11 +24,11 @@ var assignmentRegex *regexp.Regexp
 
 func init() {
 
-	standardImportRegex = regexp.MustCompile("import ([a-zA-Z0-9_]+)")
-	aliasedImportRegex = regexp.MustCompile("import ([a-zA-Z0-9_]+) as ([a-zA-Z0-9_]+)")
-	singleImportRegex = regexp.MustCompile("from ([a-zA-Z0-9_]+) import ([a-zA-Z0-9_]+)")
-	singleAliasedImportRegex = regexp.MustCompile("from ([a-zA-Z0-9_]+) import ([a-zA-Z0-9_]+) as ([a-zA-Z0-9_]+)")
-	wildImportRegex = regexp.MustCompile("from ([a-zA-Z0-9_]+) import \\*")
+	standardImportRegex = regexp.MustCompile("import ([a-zA-Z0-9_]+)\\s*$")
+	aliasedImportRegex = regexp.MustCompile("import ([a-zA-Z0-9_]+) as ([a-zA-Z0-9_]+)\\s*$")
+	singleImportRegex = regexp.MustCompile("from ([a-zA-Z0-9_]+) import ([a-zA-Z0-9_]+)\\s*$")
+	singleAliasedImportRegex = regexp.MustCompile("from ([a-zA-Z0-9_]+) import ([a-zA-Z0-9_]+) as ([a-zA-Z0-9_]+)\\s*$")
+	wildImportRegex = regexp.MustCompile("from ([a-zA-Z0-9_]+) import \\*\\s*$")
 
 	classRegex = regexp.MustCompile("class ([a-zA-Z0-9_]+).*:")
 	functionRegex = regexp.MustCompile("def ([a-zA-Z0-9_]+)\\(.*\\):")
@@ -54,8 +54,8 @@ func Parse(inputPath string, outputPath string) error {
 		return err
 	}
 
-	fmt.Println("Parsed build context:")
-	fmt.Println(context.String())
+	//fmt.Println("Parsed build context:")
+	//fmt.Println(context.String())
 
 	precompiledOutputPath, err = ioutil.TempDir("", "coiler")
 	if(err != nil) {
@@ -149,10 +149,12 @@ func parseLine(line string, fileContext *FileContext, buildContext *BuildContext
 
 	line = strings.Trim(line, " \t\r\n")
 
+	// any import
 	if(strings.Contains(line, "import")) {
 		parseImport(line, fileContext, buildContext)
 	}
 
+	// classes
 	if(strings.Contains(line, "class")) {
 
 		symbol = classRegex.FindStringSubmatch(line)
@@ -161,7 +163,7 @@ func parseLine(line string, fileContext *FileContext, buildContext *BuildContext
 		}
 	}
 
-	// function declarations are added to the symbol table and translated
+	// function
 	if(strings.Contains(line, "def")) {
 
 		symbol = functionRegex.FindStringSubmatch(line)
@@ -170,7 +172,7 @@ func parseLine(line string, fileContext *FileContext, buildContext *BuildContext
 		}
 	}
 
-	// check for variables
+	// namespace-level variable
 	if(strings.Contains(line, "=")) {
 
 		symbol = assignmentRegex.FindStringSubmatch(line)
@@ -225,11 +227,10 @@ func parseImport(line string, fileContext *FileContext, buildContext *BuildConte
 		if(!buildContext.IsFileImported(module)) {
 
 			fullPath = buildContext.FindSourcePath(module)
-
 			if(fullPath != "") {
 
-				parse(fullPath, buildContext)
 				buildContext.AddImportedFile(module)
+				parse(fullPath, buildContext)
 				fileContext.AddDependency(module)
 			} else {
 				buildContext.AddExternalDependency(module)
@@ -244,12 +245,10 @@ func parseImport(line string, fileContext *FileContext, buildContext *BuildConte
 */
 func addSymbolToContexts(symbol string, fileContext *FileContext, buildContext *BuildContext) {
 
-	var qualifiedName, translatedName string
+	var qualifiedName string
 
 	qualifiedName = fileContext.AddLocalSymbol(symbol)
-	translatedName = buildContext.AddSymbol(qualifiedName)
-
-	fmt.Printf("Added symbol '%s' as qualified '%s', translated as '%s'\n", symbol, qualifiedName, translatedName)
+	buildContext.AddSymbol(qualifiedName)
 }
 
 func callPythonCompiler(targetPath string) error {

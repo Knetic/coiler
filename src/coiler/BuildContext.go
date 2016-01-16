@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os/exec"
 	"regexp"
+	"path/filepath"
 )
 
 const (
@@ -32,7 +33,8 @@ type BuildContext struct {
 
 	// the paths used for external module lookups.
 	// different modes of operation mutate this.
-	lookupPaths []string
+	// keys are module names, values are absolute paths to the source files for them
+	lookupFiles map[string]string
 }
 
 func NewBuildContext(useSystemPaths bool) *BuildContext {
@@ -42,7 +44,7 @@ func NewBuildContext(useSystemPaths bool) *BuildContext {
 	ret = new(BuildContext)
 	ret.symbols = make(map[string]string)
 	ret.dependencies = NewDependencyGraph()
-	ret.lookupPaths = determineLookupPaths(useSystemPaths)
+	ret.lookupFiles = determineLookupFiles(determineLookupPaths(useSystemPaths))
 
 	return ret
 }
@@ -77,7 +79,10 @@ func (this *BuildContext) IsFileImported(module string) bool {
 	return false
 }
 
-func (this *BuildContext) WriteCombinedOutput(target string) error {
+/*
+	Takes the current build context and writes a single combined source file to the given [targetPath]
+*/
+func (this *BuildContext) WriteCombinedOutput(targetPath string) error {
 	return nil
 }
 
@@ -86,16 +91,22 @@ func (this *BuildContext) WriteCombinedOutput(target string) error {
 */
 func (this *BuildContext) FindSourcePath(module string) string {
 
-	return ""
+	return this.lookupFiles[module]
 }
 
 func (this *BuildContext) AddExternalDependency(module string) {
+
+	for _, dependency := range this.externalDependencies {
+		if(dependency == module) {
+			return
+		}
+	}
+
 	this.externalDependencies = append(this.externalDependencies, module)
 }
 
 func (this *BuildContext) String() string {
-
-	return fmt.Sprintf("%v", this.externalDependencies)
+	return fmt.Sprintf("External: %v\nImported: %v\nSymbols: %v\n", this.externalDependencies, this.importedFiles, this.symbols)
 }
 
 /*
@@ -128,4 +139,43 @@ func determineLookupPaths(useSystemPaths bool) []string {
 	}
 
 	return paths
+}
+
+/*
+	Given a list of directories, finds all python source files. Does not recurse.
+	Returns a map of module names to absolute paths.
+*/
+func determineLookupFiles(paths []string) map[string]string {
+
+	var ret map[string]string
+	var sourceFiles []string
+	var directoryName string
+	var fullPath, module string
+	var err error
+
+	ret = make(map[string]string)
+
+	for _, path := range paths {
+
+		directoryName = filepath.Join(path, "*.py")
+		sourceFiles, err = filepath.Glob(directoryName)
+		if(err != nil) {
+			fmt.Printf("Unable to read source file list from python lookup path '%s', skipping\n", path)
+			continue
+		}
+
+		for _, sourceFile := range sourceFiles {
+
+			fullPath, err = filepath.Abs(sourceFile)
+			if(err != nil) {
+				continue
+			}
+
+			module = filepath.Base(sourceFile)
+			module = strings.TrimSuffix(module, filepath.Ext(module))
+			ret[module] = fullPath
+		}
+	}
+
+	return ret
 }
