@@ -145,7 +145,7 @@ func (this *BuildContext) writeTranslatedFile(context *FileContext, outFile *os.
 	var rawLine []byte
 	var err error
 
-	fmt.Printf("\n\nFile Context: %s\n%v\n", context.namespace, context.localSymbols)
+	//fmt.Printf("\n\nFile Context: %s\n%v\nAnd dependent symbols: \n%v\n", context.namespace, context.localSymbols, context.dependentSymbols)
 
 	sourceFile, err = os.Open(context.fullPath)
 	if(err != nil) {
@@ -207,7 +207,11 @@ func determineLookupPaths(useSystemPaths bool) []string {
 	var output []byte
 	var paths []string
 	var matches [][]string
+	var userPath string
 	var pyPaths string
+	var path string
+
+	userPath = os.Getenv("PYTHONPATH")
 
 	process = exec.Command("python", "-c", "import sys; print(sys.path)")
 	output, _ = process.Output()
@@ -218,12 +222,23 @@ func determineLookupPaths(useSystemPaths bool) []string {
 
 	for _, match := range matches {
 
+		path = match[1]
+
 		// ignore egg files for right now
-		if(!strings.HasSuffix(match[1], ".egg")) {
-			paths = append(paths, match[1])
+		if(strings.HasSuffix(path, ".egg")) {
+			continue
 		}
 
 		// if we do not use system paths, trim out any paths that are not descended from PYTHONPATH or local.
+		if(!useSystemPaths &&
+			(len(userPath) <= 0 || !strings.HasPrefix(path, userPath)) &&
+			path != "" &&
+			path != ".") {
+			continue
+		}
+
+		fmt.Printf("Lookup path: %s\n", path)
+		paths = append(paths, path)
 	}
 
 	return paths

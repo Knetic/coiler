@@ -52,7 +52,17 @@ func NewFileContext(path string, context *BuildContext) (*FileContext, error) {
 */
 func (this *FileContext) TranslateLine(line string) string {
 
+	// ignore any top-level imports (but leave imports that are mid-line, since they're probably conditional)
+	if(strings.HasPrefix(line, "import") || (strings.HasPrefix(line, "from") && strings.Contains(line, "import"))) {
+		return ""
+	}
+
+	// translate any local or dependent symbols
 	for key, value := range this.localSymbols {
+		line = strings.Replace(line, key, this.context.TranslateSymbol(value), -1)
+	}
+
+	for key, value := range this.dependentSymbols {
 		line = strings.Replace(line, key, this.context.TranslateSymbol(value), -1)
 	}
 
@@ -75,6 +85,22 @@ func (this *FileContext) AliasContext(dependentContext *FileContext, alias strin
 
 		this.dependentSymbols[aliasedSymbol] = fullSymbol
 	}
+}
+
+func (this *FileContext) AliasCall(dependentContext *FileContext, remoteName string, aliasedName string) {
+
+	var fullSymbol string
+
+	fullSymbol = dependentContext.namespace + "." + remoteName
+	this.dependentSymbols[aliasedName] = fullSymbol
+}
+
+func (this *FileContext) UnaliasedCall(dependentContext *FileContext, remoteName string) {
+
+	var fullSymbol string
+
+	fullSymbol = dependentContext.namespace + "." + remoteName
+	this.dependentSymbols[remoteName] = fullSymbol
 }
 
 func (this *FileContext) AddDependency(module string) {

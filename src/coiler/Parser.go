@@ -39,14 +39,14 @@ func init() {
 	Parses the given [inputPath], traverses and processes all dependent imports (combining as required),
 	and uses python to compile a real executable to the given [outputPath].
 */
-func Parse(inputPath string, outputPath string) error {
+func Parse(inputPath string, outputPath string, useSystemPaths bool) error {
 
 	var context *BuildContext
 	var precompiledOutputPath string
 	var compiledName, precompiledName, baseName string
 	var err error
 
-	context = NewBuildContext(true)
+	context = NewBuildContext(useSystemPaths)
 
 	// combine in context
 	_, err = parse(inputPath, context)
@@ -110,11 +110,6 @@ func parse(path string, context *BuildContext) (*FileContext, error) {
 
 	for line := range sourceChannel {
 
-		// if this line is indented, ignore it. We only need to translate top-level stuff.
-		if(strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t")) {
-			continue
-		}
-
 		err = parseLine(line, fileContext, context)
 		if(err != nil) {
 			return nil, err
@@ -148,12 +143,18 @@ func readLines(source string, output chan string) {
 func parseLine(line string, fileContext *FileContext, buildContext *BuildContext) error {
 
 	var symbol []string
+	var trimmedLine string
 
-	line = strings.Trim(line, " \t\r\n")
+	trimmedLine = strings.Trim(line, " \t\r\n")
 
 	// any import
 	if(strings.Contains(line, "import")) {
-		parseImport(line, fileContext, buildContext)
+		parseImport(trimmedLine, fileContext, buildContext)
+	}
+
+	// if this line is indented, ignore it. We only need to translate top-level stuff.
+	if(strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t")) {
+		return nil
 	}
 
 	// classes
@@ -206,27 +207,43 @@ func parseImport(line string, fileContext *FileContext, buildContext *BuildConte
 
 	matches = singleAliasedImportRegex.FindStringSubmatch(line)
 	if(len(matches) > 0) {
-		fmt.Printf("Found module import '%s', function '%s' aliased to '%s'\n", matches[1], matches[2], matches[3])
+
+		dependentContext = parseAndImport(matches[1], fileContext, buildContext)
+		if(dependentContext == nil) {
+			return
+		}
+
+		fileContext.AliasCall(dependentContext, matches[2], matches[3])
 		return
 	}
 
 	matches = singleImportRegex.FindStringSubmatch(line)
 	if(len(matches) > 0) {
-		fmt.Printf("Found module import '%s', function '%s'\n", matches[1], matches[2])
+
+		dependentContext = parseAndImport(matches[1], fileContext, buildContext)
+		if(dependentContext == nil) {
+			return
+		}
+
+		fileContext.UnaliasedCall(dependentContext, matches[2])
 		return
 	}
 
 	matches = aliasedImportRegex.FindStringSubmatch(line)
 	if(len(matches) > 0) {
-		fmt.Printf("Found aliased module import '%s', aliased to '%s'\n", matches[1], matches[2])
 
 		dependentContext = parseAndImport(matches[1], fileContext, buildContext)
+		if(dependentContext == nil) {
+			return
+		}
+
 		fileContext.AliasContext(dependentContext, matches[2])
 		return
 	}
 
 	matches = standardImportRegex.FindStringSubmatch(line)
 	if(len(matches) > 0) {
+
 		parseAndImport(matches[1], fileContext, buildContext)
 		return
 	}
