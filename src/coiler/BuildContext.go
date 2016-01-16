@@ -65,11 +65,26 @@ func (this *BuildContext) AddSymbol(symbol string) string {
 	return translatedSymbol
 }
 
+func (this *BuildContext) TranslateSymbol(symbol string) string {
+
+	return this.symbols[symbol]
+}
+
 func (this *BuildContext) AddImportedFile(module string) {
 
 	if(!this.IsFileImported(module)) {
 		this.importedFiles = append(this.importedFiles, module)
 	}
+}
+
+func (this *BuildContext) GetFileContext(module string) *FileContext {
+
+	for _, node := range this.dependencies.nodes {
+		if(node.fileContext.namespace == module) {
+			return node.fileContext
+		}
+	}
+	return nil
 }
 
 func (this *BuildContext) IsFileImported(module string) bool {
@@ -114,7 +129,6 @@ func (this *BuildContext) WriteCombinedOutput(targetPath string) error {
 
 	for _, context := range fileContexts {
 
-		fmt.Printf("Writing context: %s\n", context.namespace)
 		err = this.writeTranslatedFile(context, outFile)
 		if(err != nil) {
 			return err
@@ -130,6 +144,8 @@ func (this *BuildContext) writeTranslatedFile(context *FileContext, outFile *os.
 	var line string
 	var rawLine []byte
 	var err error
+
+	fmt.Printf("\n\nFile Context: %s\n%v\n", context.namespace, context.localSymbols)
 
 	sourceFile, err = os.Open(context.fullPath)
 	if(err != nil) {
@@ -148,16 +164,10 @@ func (this *BuildContext) writeTranslatedFile(context *FileContext, outFile *os.
 			return err
 		}
 
-		line = translateLine(string(rawLine), context)
+		line = context.TranslateLine(string(rawLine))
 		outFile.Write([]byte(line))
 	}
 	return nil
-}
-
-func (this *BuildContext) translateLine(line string, context *FileContext) string {
-
-	
-	return line
 }
 
 /*

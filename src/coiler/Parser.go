@@ -49,7 +49,7 @@ func Parse(inputPath string, outputPath string) error {
 	context = NewBuildContext(true)
 
 	// combine in context
-	err = parse(inputPath, context)
+	_, err = parse(inputPath, context)
 	if(err != nil) {
 		return err
 	}
@@ -86,7 +86,7 @@ func Parse(inputPath string, outputPath string) error {
 	return err
 }
 
-func parse(path string, context *BuildContext) error {
+func parse(path string, context *BuildContext) (*FileContext, error) {
 
 	var fileContext *FileContext
 	var contents []byte
@@ -97,12 +97,12 @@ func parse(path string, context *BuildContext) error {
 
 	contents, err = ioutil.ReadFile(path)
 	if(err != nil) {
-		return err
+		return nil, err
 	}
 
 	fileContext, err = NewFileContext(path, context)
 	if(err != nil) {
-		return err
+		return nil, err
 	}
 
 	context.AddDependency(fileContext)
@@ -117,11 +117,11 @@ func parse(path string, context *BuildContext) error {
 
 		err = parseLine(line, fileContext, context)
 		if(err != nil) {
-			return err
+			return nil, err
 		}
 	}
 
-	return nil
+	return fileContext, nil
 }
 
 func readLines(source string, output chan string) {
@@ -192,7 +192,7 @@ func parseLine(line string, fileContext *FileContext, buildContext *BuildContext
 */
 func parseImport(line string, fileContext *FileContext, buildContext *BuildContext) {
 
-	var module, fullPath string
+	var dependentContext *FileContext
 	var matches []string
 
 	// imports can happen in any number of wacky forms
@@ -219,27 +219,40 @@ func parseImport(line string, fileContext *FileContext, buildContext *BuildConte
 	matches = aliasedImportRegex.FindStringSubmatch(line)
 	if(len(matches) > 0) {
 		fmt.Printf("Found aliased module import '%s', aliased to '%s'\n", matches[1], matches[2])
+
+		dependentContext = parseAndImport(matches[1], fileContext, buildContext)
+		fileContext.AliasContext(dependentContext, matches[2])
 		return
 	}
 
 	matches = standardImportRegex.FindStringSubmatch(line)
 	if(len(matches) > 0) {
-
-		module = matches[1]
-		if(!buildContext.IsFileImported(module)) {
-
-			fullPath = buildContext.FindSourcePath(module)
-			if(fullPath != "") {
-
-				buildContext.AddImportedFile(module)
-				parse(fullPath, buildContext)
-				fileContext.AddDependency(module)
-			} else {
-				buildContext.AddExternalDependency(module)
-			}
-		}
+		parseAndImport(matches[1], fileContext, buildContext)
 		return
 	}
+}
+
+func parseAndImport(module string, fileContext *FileContext, buildContext *BuildContext) *FileContext {
+
+	var dependentContext *FileContext
+	var fullPath string
+
+	if(!buildContext.IsFileImported(module)) {
+
+		fullPath = buildContext.FindSourcePath(module)
+		if(fullPath != "") {
+
+			buildContext.AddImportedFile(module)
+			dependentContext, _ = parse(fullPath, buildContext)
+			fileContext.AddDependency(module)
+		} else {
+			buildContext.AddExternalDependency(module)
+		}
+	} else {
+		dependentContext = buildContext.GetFileContext(module)
+	}
+
+	return dependentContext
 }
 
 /*
