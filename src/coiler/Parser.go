@@ -20,6 +20,7 @@ var wildImportRegex *regexp.Regexp
 
 var classRegex *regexp.Regexp
 var functionRegex *regexp.Regexp
+var assignmentRegex *regexp.Regexp
 
 func init() {
 
@@ -31,6 +32,7 @@ func init() {
 
 	classRegex = regexp.MustCompile("class ([a-zA-Z0-9_]+).*:")
 	functionRegex = regexp.MustCompile("def ([a-zA-Z0-9_]+)\\(.*\\):")
+	assignmentRegex = regexp.MustCompile("([a-zA-Z0-9_]+)\\s+=")
 }
 
 /*
@@ -105,6 +107,12 @@ func parse(path string, context *BuildContext) error {
 	go readLines(string(contents), sourceChannel)
 
 	for line := range sourceChannel {
+
+		// if this line is indented, ignore it. We only need to translate top-level stuff.
+		if(strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t")) {
+			continue
+		}
+
 		err = parseLine(line, fileContext, context)
 		if(err != nil) {
 			return err
@@ -148,26 +156,27 @@ func parseLine(line string, fileContext *FileContext, buildContext *BuildContext
 	if(strings.Contains(line, "class")) {
 
 		symbol = classRegex.FindStringSubmatch(line)
-		if(len(symbol) <= 0) {
-			fmt.Printf("Unable to add class symbol: %s, could not find classname\n", line)
-			return nil
+		if(len(symbol) > 0) {
+			addSymbolToContexts(symbol[1], fileContext, buildContext)
 		}
-
-		addSymbolToContexts(symbol[1], fileContext, buildContext)
-		return nil
 	}
 
 	// function declarations are added to the symbol table and translated
 	if(strings.Contains(line, "def")) {
 
 		symbol = functionRegex.FindStringSubmatch(line)
-		if(len(symbol) <= 0) {
-			fmt.Printf("Unable to add function symbol: %s, could not find function name\n", line)
-			return nil
+		if(len(symbol) > 0) {
+			addSymbolToContexts(symbol[1], fileContext, buildContext)
 		}
+	}
 
-		addSymbolToContexts(symbol[1], fileContext, buildContext)
-		return nil
+	// check for variables
+	if(strings.Contains(line, "=")) {
+
+		symbol = assignmentRegex.FindStringSubmatch(line)
+		if(len(symbol) > 0) {
+			addSymbolToContexts(symbol[1], fileContext, buildContext)
+		}
 	}
 
 	return nil
