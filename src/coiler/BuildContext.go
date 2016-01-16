@@ -5,8 +5,9 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"regexp"
 	"io"
+	"regexp"
+	"bufio"
 	"path/filepath"
 )
 
@@ -125,6 +126,9 @@ func (this *BuildContext) WriteCombinedOutput(targetPath string) error {
 func (this *BuildContext) writeTranslatedFile(context *FileContext, outFile *os.File) error {
 
 	var sourceFile *os.File
+	var sourceReader *bufio.Reader
+	var line string
+	var rawLine []byte
 	var err error
 
 	sourceFile, err = os.Open(context.fullPath)
@@ -133,13 +137,27 @@ func (this *BuildContext) writeTranslatedFile(context *FileContext, outFile *os.
 	}
 	defer sourceFile.Close()
 
-	written, err := io.Copy(outFile, sourceFile)
-	if(err != nil) {
-		return err
-	}
+	sourceReader = bufio.NewReader(sourceFile)
 
-	fmt.Printf("Wrote %d bytes from '%s'\n", written, context.fullPath)
+	for {
+		rawLine, err = sourceReader.ReadBytes('\n')
+		if(err != nil) {
+			if(err == io.EOF) {
+				break
+			}
+			return err
+		}
+
+		line = translateLine(string(rawLine), context)
+		outFile.Write([]byte(line))
+	}
 	return nil
+}
+
+func (this *BuildContext) translateLine(line string, context *FileContext) string {
+
+	
+	return line
 }
 
 /*
