@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"path/filepath"
 	"fmt"
+	"errors"
 	"os"
 	"os/exec"
 	"strings"
@@ -54,9 +55,6 @@ func Parse(inputPath string, outputPath string, useSystemPaths bool) error {
 		return err
 	}
 
-	//fmt.Println("Parsed build context:")
-	//fmt.Println(context.String())
-
 	precompiledOutputPath, err = ioutil.TempDir("", "coiler")
 	if(err != nil) {
 		return err
@@ -104,6 +102,8 @@ func parse(path string, context *BuildContext) (*FileContext, error) {
 	if(err != nil) {
 		return nil, err
 	}
+
+	fmt.Printf("Combining module '%s'\n", fileContext.namespace)
 
 	context.AddDependency(fileContext)
 	go readLines(string(contents), sourceChannel)
@@ -287,11 +287,21 @@ func callPythonCompiler(targetPath string) error {
 
 	var compiler *exec.Cmd
 	var arguments []string
+	var output []byte
+	var err error
 
 	arguments = []string {"-m", "compileall", targetPath}
 
 	compiler = exec.Command("python", arguments...)
-	return compiler.Run()
+
+	fmt.Println("Calling python compiler")
+	output, err = compiler.CombinedOutput()
+
+	if(err != nil) {
+		errorMsg := fmt.Sprintf("Compile failed:\n%s\n%v\n", string(output), err)
+		return errors.New(errorMsg)
+	}
+	return nil
 }
 
 /*

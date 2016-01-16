@@ -237,7 +237,6 @@ func determineLookupPaths(useSystemPaths bool) []string {
 			continue
 		}
 
-		fmt.Printf("Lookup path: %s\n", path)
 		paths = append(paths, path)
 	}
 

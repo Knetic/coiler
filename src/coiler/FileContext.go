@@ -3,6 +3,7 @@ package coiler
 import (
 	"path/filepath"
 	"strings"
+	"regexp"
 )
 
 type FileContext struct {
@@ -26,6 +27,13 @@ type FileContext struct {
 	namespace string
 }
 
+var invalidPythonCharacters *regexp.Regexp
+
+func init() {
+
+	invalidPythonCharacters = regexp.MustCompile("[^a-zA-Z0-9_]")
+}
+
 func NewFileContext(path string, context *BuildContext) (*FileContext, error) {
 
 	var ret *FileContext
@@ -43,6 +51,7 @@ func NewFileContext(path string, context *BuildContext) (*FileContext, error) {
 	ret.context = context
 	ret.namespace = filepath.Base(ret.fullPath)
 	ret.namespace = ret.namespace[0:len(ret.namespace)-3] // trim *.py extension
+	ret.namespace = invalidPythonCharacters.ReplaceAllString(ret.namespace, "")
 
 	return ret, nil
 }
