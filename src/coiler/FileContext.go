@@ -27,6 +27,7 @@ func NewFileContext(path string, context *BuildContext) (*FileContext, error) {
 	var err error
 
 	ret = new(FileContext)
+	ret.localSymbols = make(map[string]string)
 
 	ret.fullPath, err = filepath.Abs(path)
 	if(err != nil) {
@@ -44,6 +45,12 @@ func (this *FileContext) AddDependency(module string) {
 	this.dependencies = append(this.dependencies, module)
 }
 
-func (this *FileContext) AddLocalSymbol(localName, qualifiedName string) {
+func (this *FileContext) AddLocalSymbol(localName string) string {
+
+	var qualifiedName string
+
+	qualifiedName = this.namespace + "." + localName
 	this.localSymbols[localName] = qualifiedName
+
+	return qualifiedName
 }

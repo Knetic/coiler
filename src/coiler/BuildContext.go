@@ -3,6 +3,8 @@ package coiler
 import (
 	"strings"
 	"fmt"
+	"os/exec"
+	"regexp"
 )
 
 const (
@@ -33,22 +35,29 @@ type BuildContext struct {
 	lookupPaths []string
 }
 
-func NewBuildContext() *BuildContext {
+func NewBuildContext(useSystemPaths bool) *BuildContext {
 
 	var ret *BuildContext
 
 	ret = new(BuildContext)
+	ret.symbols = make(map[string]string)
 	ret.dependencies = NewDependencyGraph()
+	ret.lookupPaths = determineLookupPaths(useSystemPaths)
 
 	return ret
 }
 
 /*
 	Takes a fully-qualified symbol name, and creates a namespaced version suitable for use in combined files.
+	Returns the translated name.
 */
-func (this *BuildContext) AddSymbol(symbol string) {
+func (this *BuildContext) AddSymbol(symbol string) string {
 
-	this.symbols[symbol] = strings.Replace(symbol, ".", NAMESPACE_SEPARATOR, -1)
+	var translatedSymbol string
+
+	translatedSymbol = strings.Replace(symbol, ".", NAMESPACE_SEPARATOR, -1)
+	this.symbols[symbol] = translatedSymbol
+	return translatedSymbol
 }
 
 func (this *BuildContext) AddImportedFile(module string) {
@@ -87,4 +96,36 @@ func (this *BuildContext) AddExternalDependency(module string) {
 func (this *BuildContext) String() string {
 
 	return fmt.Sprintf("%v", this.externalDependencies)
+}
+
+/*
+	Determines the python lookup paths to use.
+*/
+func determineLookupPaths(useSystemPaths bool) []string {
+
+	var process *exec.Cmd
+	var pathExtractor *regexp.Regexp
+	var output []byte
+	var paths []string
+	var matches [][]string
+	var pyPaths string
+
+	process = exec.Command("python", "-c", "import sys; print(sys.path)")
+	output, _ = process.Output()
+	pyPaths = string(output)
+
+	pathExtractor = regexp.MustCompile("'([^']*)'")
+	matches = pathExtractor.FindAllStringSubmatch(pyPaths, -1)
+
+	for _, match := range matches {
+
+		// ignore egg files for right now
+		if(!strings.HasSuffix(match[1], ".egg")) {
+			paths = append(paths, match[1])
+		}
+
+		// if we do not use system paths, trim out any paths that are not descended from PYTHONPATH or local.
+	}
+
+	return paths
 }

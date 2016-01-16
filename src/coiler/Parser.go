@@ -11,11 +11,15 @@ import (
 	"regexp"
 )
 
+// import regexes
 var standardImportRegex *regexp.Regexp
 var aliasedImportRegex *regexp.Regexp
 var singleImportRegex *regexp.Regexp
 var singleAliasedImportRegex *regexp.Regexp
 var wildImportRegex *regexp.Regexp
+
+var classRegex *regexp.Regexp
+var functionRegex *regexp.Regexp
 
 func init() {
 
@@ -24,6 +28,9 @@ func init() {
 	singleImportRegex = regexp.MustCompile("from ([a-zA-Z0-9_]+) import ([a-zA-Z0-9_]+)")
 	singleAliasedImportRegex = regexp.MustCompile("from ([a-zA-Z0-9_]+) import ([a-zA-Z0-9_]+) as ([a-zA-Z0-9_]+)")
 	wildImportRegex = regexp.MustCompile("from ([a-zA-Z0-9_]+) import \\*")
+
+	classRegex = regexp.MustCompile("class ([a-zA-Z0-9_]+).*:")
+	functionRegex = regexp.MustCompile("def ([a-zA-Z0-9_]+)\\(.*\\):")
 }
 
 /*
@@ -37,7 +44,7 @@ func Parse(inputPath string, outputPath string) error {
 	var compiledName, precompiledName, baseName string
 	var err error
 
-	context = NewBuildContext()
+	context = NewBuildContext(true)
 
 	// combine in context
 	err = parse(inputPath, context)
@@ -130,11 +137,39 @@ func readLines(source string, output chan string) {
 
 func parseLine(line string, fileContext *FileContext, buildContext *BuildContext) error {
 
-	line = strings.Trim(line, " \t\n\r")
+	var symbol []string
+
+	line = strings.Trim(line, " \t\r\n")
 
 	if(strings.Contains(line, "import")) {
 		parseImport(line, fileContext, buildContext)
 	}
+
+	if(strings.Contains(line, "class")) {
+
+		symbol = classRegex.FindStringSubmatch(line)
+		if(len(symbol) <= 0) {
+			fmt.Printf("Unable to add class symbol: %s, could not find classname\n", line)
+			return nil
+		}
+
+		addSymbolToContexts(symbol[1], fileContext, buildContext)
+		return nil
+	}
+
+	// function declarations are added to the symbol table and translated
+	if(strings.Contains(line, "def")) {
+
+		symbol = functionRegex.FindStringSubmatch(line)
+		if(len(symbol) <= 0) {
+			fmt.Printf("Unable to add function symbol: %s, could not find function name\n", line)
+			return nil
+		}
+
+		addSymbolToContexts(symbol[1], fileContext, buildContext)
+		return nil
+	}
+
 	return nil
 }
 
@@ -178,8 +213,6 @@ func parseImport(line string, fileContext *FileContext, buildContext *BuildConte
 	if(len(matches) > 0) {
 
 		module = matches[1]
-		fmt.Printf("Found normal import '%s'\n", module)
-
 		if(!buildContext.IsFileImported(module)) {
 
 			fullPath = buildContext.FindSourcePath(module)
@@ -195,6 +228,19 @@ func parseImport(line string, fileContext *FileContext, buildContext *BuildConte
 		}
 		return
 	}
+}
+
+/*
+	Properly adds the given [symbol] to the given file and build contexts.
+*/
+func addSymbolToContexts(symbol string, fileContext *FileContext, buildContext *BuildContext) {
+
+	var qualifiedName, translatedName string
+
+	qualifiedName = fileContext.AddLocalSymbol(symbol)
+	translatedName = buildContext.AddSymbol(qualifiedName)
+
+	fmt.Printf("Added symbol '%s' as qualified '%s', translated as '%s'\n", symbol, qualifiedName, translatedName)
 }
 
 func callPythonCompiler(targetPath string) error {
