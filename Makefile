@@ -17,6 +17,10 @@ test:
 clean:
 	@rm -rf ./.output/
 
+fmt:
+	@go fmt .
+	@go fmt ./src/coiler/
+
 dist: build test
 
 	export GOOS=linux; \

@@ -5,10 +5,9 @@ import (
 )
 
 type RunSettings struct {
-
-	CombineMode string
+	CombineMode    string
 	EntryPointPath string
-	OutputPath string
+	OutputPath     string
 }
 
 func ParseRunSettings() RunSettings {

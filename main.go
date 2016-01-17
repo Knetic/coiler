@@ -19,7 +19,7 @@ func main() {
 	settings = ParseRunSettings()
 
 	context, err = coiler.Parse(settings.EntryPointPath, settings.CombineMode == "all")
-	if(err != nil) {
+	if err != nil {
 		printError(1, "Unable to parse source files: \n%v\n", err)
 		return
 	}
@@ -30,7 +30,7 @@ func main() {
 
 	startTime = currentTime
 	err = coiler.CompileCombinedFile(settings.OutputPath, context)
-	if(err != nil) {
+	if err != nil {
 		printError(1, "\nUnable to compile combined output: \n%v\n", err)
 		return
 	}

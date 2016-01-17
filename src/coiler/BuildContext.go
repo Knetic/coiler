@@ -1,12 +1,12 @@
 package coiler
 
 import (
-	"strings"
+	"fmt"
 	"os"
 	"os/exec"
-	"fmt"
-	"regexp"
 	"path/filepath"
+	"regexp"
+	"strings"
 )
 
 const (
@@ -70,7 +70,7 @@ func (this *BuildContext) TranslateSymbol(symbol string) string {
 
 func (this *BuildContext) AddImportedFile(module string) {
 
-	if(!this.IsFileImported(module)) {
+	if !this.IsFileImported(module) {
 		this.importedFiles = append(this.importedFiles, module)
 	}
 }
@@ -78,7 +78,7 @@ func (this *BuildContext) AddImportedFile(module string) {
 func (this *BuildContext) GetFileContext(module string) *FileContext {
 
 	for _, node := range this.dependencies.nodes {
-		if(node.fileContext.namespace == module) {
+		if node.fileContext.namespace == module {
 			return node.fileContext
 		}
 	}
@@ -88,7 +88,7 @@ func (this *BuildContext) GetFileContext(module string) *FileContext {
 func (this *BuildContext) IsFileImported(module string) bool {
 
 	for _, file := range this.importedFiles {
-		if(module == file) {
+		if module == file {
 			return true
 		}
 	}
@@ -110,7 +110,7 @@ func (this *BuildContext) AddDependency(context *FileContext) {
 func (this *BuildContext) AddExternalDependency(module string) {
 
 	for _, dependency := range this.externalDependencies {
-		if(dependency == module) {
+		if dependency == module {
 			return
 		}
 	}
@@ -150,15 +150,15 @@ func determineLookupPaths(useSystemPaths bool) []string {
 		path = match[1]
 
 		// ignore egg files for right now
-		if(strings.HasSuffix(path, ".egg")) {
+		if strings.HasSuffix(path, ".egg") {
 			continue
 		}
 
 		// if we do not use system paths, trim out any paths that are not descended from PYTHONPATH or local.
-		if(!useSystemPaths &&
+		if !useSystemPaths &&
 			(len(userPath) <= 0 || !strings.HasPrefix(path, userPath)) &&
 			path != "" &&
-			path != ".") {
+			path != "." {
 			continue
 		}
 
@@ -186,7 +186,7 @@ func determineLookupFiles(paths []string) map[string]string {
 
 		directoryName = filepath.Join(path, "*.py")
 		sourceFiles, err = filepath.Glob(directoryName)
-		if(err != nil) {
+		if err != nil {
 			fmt.Printf("Unable to read source file list from python lookup path '%s', skipping\n", path)
 			continue
 		}
@@ -194,7 +194,7 @@ func determineLookupFiles(paths []string) map[string]string {
 		for _, sourceFile := range sourceFiles {
 
 			fullPath, err = filepath.Abs(sourceFile)
-			if(err != nil) {
+			if err != nil {
 				continue
 			}
 

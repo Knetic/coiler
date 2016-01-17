@@ -1,10 +1,10 @@
 package coiler
 
 import (
-	"io/ioutil"
 	"fmt"
-	"strings"
+	"io/ioutil"
 	"regexp"
+	"strings"
 )
 
 // import regexes
@@ -44,7 +44,7 @@ func Parse(inputPath string, useSystemPaths bool) (*BuildContext, error) {
 
 	// combine in context
 	_, err = parse(inputPath, context)
-	if(err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
@@ -61,12 +61,12 @@ func parse(path string, context *BuildContext) (*FileContext, error) {
 	sourceChannel = make(chan string)
 
 	contents, err = ioutil.ReadFile(path)
-	if(err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
 	fileContext, err = NewFileContext(path, context)
-	if(err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
@@ -76,7 +76,7 @@ func parse(path string, context *BuildContext) (*FileContext, error) {
 	for line := range sourceChannel {
 
 		err = parseLine(line, fileContext, context)
-		if(err != nil) {
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -97,7 +97,7 @@ func readLines(source string, output chan string) {
 		source = source[newlineIndex+1:]
 		newlineIndex = strings.Index(source, "\n")
 
-		if(newlineIndex < 0) {
+		if newlineIndex < 0 {
 			newlineIndex = len(source)
 		}
 
@@ -113,38 +113,38 @@ func parseLine(line string, fileContext *FileContext, buildContext *BuildContext
 	trimmedLine = strings.Trim(line, " \t\r\n")
 
 	// any import
-	if(strings.Contains(line, "import")) {
+	if strings.Contains(line, "import") {
 		parseImport(trimmedLine, fileContext, buildContext)
 	}
 
 	// if this line is indented, ignore it. We only need to translate top-level stuff.
-	if(strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t")) {
+	if strings.HasPrefix(line, " ") || strings.HasPrefix(line, "\t") {
 		return nil
 	}
 
 	// classes
-	if(strings.Contains(line, "class")) {
+	if strings.Contains(line, "class") {
 
 		symbol = classRegex.FindStringSubmatch(line)
-		if(len(symbol) > 0) {
+		if len(symbol) > 0 {
 			addSymbolToContexts(symbol[1], fileContext, buildContext)
 		}
 	}
 
 	// function
-	if(strings.Contains(line, "def")) {
+	if strings.Contains(line, "def") {
 
 		symbol = functionRegex.FindStringSubmatch(line)
-		if(len(symbol) > 0) {
+		if len(symbol) > 0 {
 			addSymbolToContexts(symbol[1], fileContext, buildContext)
 		}
 	}
 
 	// namespace-level variable
-	if(strings.Contains(line, "=")) {
+	if strings.Contains(line, "=") {
 
 		symbol = assignmentRegex.FindStringSubmatch(line)
-		if(len(symbol) > 0) {
+		if len(symbol) > 0 {
 			addSymbolToContexts(symbol[1], fileContext, buildContext)
 		}
 	}
@@ -165,16 +165,16 @@ func parseImport(line string, fileContext *FileContext, buildContext *BuildConte
 	// go through from most-to-least specific and try to determine which form is being used,
 	// and how to modify the contexts
 	matches = wildImportRegex.FindStringSubmatch(line)
-	if(len(matches) > 0) {
+	if len(matches) > 0 {
 		fmt.Println("Wild import statement detected. Ignoring.")
 		return
 	}
 
 	matches = singleAliasedImportRegex.FindStringSubmatch(line)
-	if(len(matches) > 0) {
+	if len(matches) > 0 {
 
 		dependentContext = parseAndImport(matches[1], fileContext, buildContext)
-		if(dependentContext == nil) {
+		if dependentContext == nil {
 			return
 		}
 
@@ -183,10 +183,10 @@ func parseImport(line string, fileContext *FileContext, buildContext *BuildConte
 	}
 
 	matches = singleImportRegex.FindStringSubmatch(line)
-	if(len(matches) > 0) {
+	if len(matches) > 0 {
 
 		dependentContext = parseAndImport(matches[1], fileContext, buildContext)
-		if(dependentContext == nil) {
+		if dependentContext == nil {
 			return
 		}
 
@@ -195,10 +195,10 @@ func parseImport(line string, fileContext *FileContext, buildContext *BuildConte
 	}
 
 	matches = aliasedImportRegex.FindStringSubmatch(line)
-	if(len(matches) > 0) {
+	if len(matches) > 0 {
 
 		dependentContext = parseAndImport(matches[1], fileContext, buildContext)
-		if(dependentContext == nil) {
+		if dependentContext == nil {
 			return
 		}
 
@@ -207,7 +207,7 @@ func parseImport(line string, fileContext *FileContext, buildContext *BuildConte
 	}
 
 	matches = standardImportRegex.FindStringSubmatch(line)
-	if(len(matches) > 0) {
+	if len(matches) > 0 {
 
 		parseAndImport(matches[1], fileContext, buildContext)
 		return
@@ -219,10 +219,10 @@ func parseAndImport(module string, fileContext *FileContext, buildContext *Build
 	var dependentContext *FileContext
 	var fullPath string
 
-	if(!buildContext.IsFileImported(module)) {
+	if !buildContext.IsFileImported(module) {
 
 		fullPath = buildContext.FindSourcePath(module)
-		if(fullPath != "") {
+		if fullPath != "" {
 
 			buildContext.AddImportedFile(module)
 			dependentContext, _ = parse(fullPath, buildContext)

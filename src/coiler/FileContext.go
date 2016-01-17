@@ -2,12 +2,11 @@ package coiler
 
 import (
 	"path/filepath"
-	"strings"
 	"regexp"
+	"strings"
 )
 
 type FileContext struct {
-
 	context *BuildContext
 
 	// all imported modules, in order.
@@ -46,13 +45,13 @@ func NewFileContext(path string, context *BuildContext) (*FileContext, error) {
 	ret.dependentSymbols = make(map[string]string)
 
 	ret.fullPath, err = filepath.Abs(path)
-	if(err != nil) {
+	if err != nil {
 		return nil, err
 	}
 
 	ret.context = context
 	ret.namespace = filepath.Base(ret.fullPath)
-	ret.namespace = ret.namespace[0:len(ret.namespace)-3] // trim *.py extension
+	ret.namespace = ret.namespace[0 : len(ret.namespace)-3] // trim *.py extension
 	ret.namespace = invalidPythonCharacters.ReplaceAllString(ret.namespace, "")
 
 	return ret, nil
@@ -66,7 +65,7 @@ func (this *FileContext) TranslateLine(line string) string {
 	var keys []string
 
 	// ignore any top-level imports (but leave imports that are mid-line, since they're probably conditional)
-	if(strings.HasPrefix(line, "import") || (strings.HasPrefix(line, "from") && strings.Contains(line, "import"))) {
+	if strings.HasPrefix(line, "import") || (strings.HasPrefix(line, "from") && strings.Contains(line, "import")) {
 		return ""
 	}
 
@@ -95,7 +94,7 @@ func (this *FileContext) AliasContext(dependentContext *FileContext, alias strin
 
 	for _, fullSymbol := range dependentContext.localSymbols {
 
-		bareSymbol = strings.Replace(fullSymbol, dependentContext.namespace + ".", "", -1)
+		bareSymbol = strings.Replace(fullSymbol, dependentContext.namespace+".", "", -1)
 		aliasedSymbol = alias + "." + bareSymbol
 
 		this.dependentSymbols[aliasedSymbol] = fullSymbol
@@ -156,7 +155,7 @@ func orderMapKeysByLength(source map[string]string) []string {
 	for i := 0; i < length; i++ {
 		for z := 0; z < length-1; z++ {
 
-			if(len(ret[z]) < len(ret[z+1])) {
+			if len(ret[z]) < len(ret[z+1]) {
 				swap = ret[z]
 				ret[z] = ret[z+1]
 				ret[z+1] = swap
@@ -181,12 +180,12 @@ func replaceSymbol(line string, symbol string, replacement string) string {
 	for {
 
 		endIndex++
-		if(endIndex > len(line)) {
+		if endIndex > len(line) {
 			return line
 		}
 
 		startIndex = strings.Index(line[endIndex:], symbol)
-		if(startIndex < 0) {
+		if startIndex < 0 {
 			return line
 		}
 
@@ -196,11 +195,11 @@ func replaceSymbol(line string, symbol string, replacement string) string {
 		endIndex = startIndex + len(symbol)
 
 		// if prefix is within range
-		if(startIndex-1 > 0) {
+		if startIndex-1 > 0 {
 
 			// if prefixed by an alphanumeric character
-			prefix = []byte(line[startIndex-1:startIndex])
-			if(irreplaceableCharacters.Match(prefix)) {
+			prefix = []byte(line[startIndex-1 : startIndex])
+			if irreplaceableCharacters.Match(prefix) {
 
 				//fmt.Printf("Found a prefix replacement (%s) that shouldn't happen: line '%s', symbol: '%s'\n%d:%d\n\n", prefix, line, symbol, startIndex, endIndex)
 				continue
@@ -208,11 +207,11 @@ func replaceSymbol(line string, symbol string, replacement string) string {
 		}
 
 		// if postfix is within range
-		if(endIndex < len(line)) {
+		if endIndex < len(line) {
 
 			// if postfixed by an alphanumeric character
-			postfix = []byte(line[endIndex:endIndex+1])
-			if(irreplaceableCharacters.Match(postfix)) {
+			postfix = []byte(line[endIndex : endIndex+1])
+			if irreplaceableCharacters.Match(postfix) {
 
 				//fmt.Printf("Found a postfix (%s) replacement that shouldn't happen: line '%s', symbol: '%s'\n%d:%d\n\n", postfix, line, symbol, startIndex, endIndex)
 				continue

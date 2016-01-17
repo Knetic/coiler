@@ -1,14 +1,14 @@
 package coiler
 
 import (
+	"bufio"
+	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
-	"path/filepath"
-	"fmt"
-	"errors"
 	"os"
-	"bufio"
 	"os/exec"
+	"path/filepath"
 	"strings"
 )
 
@@ -19,7 +19,7 @@ func CompileCombinedFile(outputPath string, context *BuildContext) error {
 	var err error
 
 	precompiledOutputPath, err = ioutil.TempDir("", "coiler")
-	if(err != nil) {
+	if err != nil {
 		return err
 	}
 
@@ -27,19 +27,19 @@ func CompileCombinedFile(outputPath string, context *BuildContext) error {
 	baseName = strings.TrimSuffix(baseName, filepath.Ext(baseName))
 	precompiledName = fmt.Sprintf("%s/%s.py", precompiledOutputPath, baseName)
 
-	if(strings.HasSuffix(baseName, ".pyc")) {
+	if strings.HasSuffix(baseName, ".pyc") {
 		compiledName = fmt.Sprintf("%s/%s", precompiledOutputPath, baseName)
 	} else {
 		compiledName = fmt.Sprintf("%s/%s.pyc", precompiledOutputPath, baseName)
 	}
 
 	err = writeCombinedOutput(precompiledName, context)
-	if(err != nil) {
+	if err != nil {
 		return err
 	}
 
 	err = callPythonCompiler(precompiledOutputPath)
-	if(err != nil) {
+	if err != nil {
 		return err
 	}
 
@@ -54,14 +54,14 @@ func callPythonCompiler(targetPath string) error {
 	var output []byte
 	var err error
 
-	arguments = []string {"-m", "compileall", targetPath}
+	arguments = []string{"-m", "compileall", targetPath}
 
 	compiler = exec.Command("python", arguments...)
 
 	fmt.Println("Calling python compiler")
 	output, err = compiler.CombinedOutput()
 
-	if(err != nil) {
+	if err != nil {
 		errorMsg := fmt.Sprintf("Compile failed:\n%s\n%v\n", string(output), err)
 		return errors.New(errorMsg)
 	}
@@ -77,13 +77,13 @@ func copyFile(source, target string) error {
 	var err error
 
 	sourceFile, err = os.Open(source)
-	if(err != nil) {
+	if err != nil {
 		return err
 	}
 	defer sourceFile.Close()
 
 	targetFile, err = os.Create(target)
-	if(err != nil) {
+	if err != nil {
 		return err
 	}
 	targetFile.Chmod(0755)
@@ -104,10 +104,10 @@ func writeCombinedOutput(targetPath string, buildContext *BuildContext) error {
 	var err error
 
 	outFile, err = os.Create(targetPath)
-	if(err != nil) {
+	if err != nil {
 
 		outFile, err = os.Open(targetPath)
-		if(err != nil) {
+		if err != nil {
 			return err
 		}
 	}
@@ -126,7 +126,7 @@ func writeCombinedOutput(targetPath string, buildContext *BuildContext) error {
 	for _, context := range fileContexts {
 
 		err = writeTranslatedFile(context, outFile)
-		if(err != nil) {
+		if err != nil {
 			return err
 		}
 	}
@@ -142,7 +142,7 @@ func writeTranslatedFile(context *FileContext, outFile *os.File) error {
 	var err error
 
 	sourceFile, err = os.Open(context.fullPath)
-	if(err != nil) {
+	if err != nil {
 		return err
 	}
 	defer sourceFile.Close()
@@ -151,8 +151,8 @@ func writeTranslatedFile(context *FileContext, outFile *os.File) error {
 
 	for {
 		rawLine, err = sourceReader.ReadBytes('\n')
-		if(err != nil) {
-			if(err == io.EOF) {
+		if err != nil {
+			if err == io.EOF {
 				break
 			}
 			return err

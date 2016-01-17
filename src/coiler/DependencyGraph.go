@@ -4,14 +4,12 @@ package coiler
 	Represents a dependency graph that can order imports.
 */
 type DependencyGraph struct {
-
 	nodes []*DependencyGraphNode
 }
 
 type DependencyGraphNode struct {
-
 	fileContext *FileContext
-	neighbors []*DependencyGraphNode
+	neighbors   []*DependencyGraphNode
 }
 
 func NewDependencyGraph() *DependencyGraph {
@@ -27,7 +25,7 @@ func (this *DependencyGraph) AddNode(file *FileContext) {
 	var node *DependencyGraphNode
 
 	for _, node := range this.nodes {
-		if(node.fileContext == file) {
+		if node.fileContext == file {
 			return
 		}
 	}
@@ -36,10 +34,11 @@ func (this *DependencyGraph) AddNode(file *FileContext) {
 	node.fileContext = file
 	this.nodes = append(this.nodes, node)
 }
+
 /*
 	Returns a slice of files which represents an ordering where dependent files are given first.
 */
-func (this *DependencyGraph) GetOrderedNodes() ([]*FileContext) {
+func (this *DependencyGraph) GetOrderedNodes() []*FileContext {
 
 	var ret []*FileContext
 
@@ -58,7 +57,7 @@ func (this *DependencyGraph) DiscoverNeighbors() {
 	for _, node := range this.nodes {
 		for _, neighbor := range node.fileContext.dependencies {
 			for _, possibleNeighbor := range this.nodes {
-				if(possibleNeighbor.fileContext.namespace == neighbor) {
+				if possibleNeighbor.fileContext.namespace == neighbor {
 
 					node.addNeighbor(possibleNeighbor)
 					break
@@ -68,13 +67,13 @@ func (this *DependencyGraph) DiscoverNeighbors() {
 	}
 }
 
-func resolveDependency(node *DependencyGraphNode, resolution []*FileContext) ([]*FileContext) {
+func resolveDependency(node *DependencyGraphNode, resolution []*FileContext) []*FileContext {
 
 	for _, neighbor := range node.neighbors {
-			resolution = resolveDependency(neighbor, resolution)
+		resolution = resolveDependency(neighbor, resolution)
 	}
 
-	if(!elementExistsInSlice(node.fileContext, resolution)) {
+	if !elementExistsInSlice(node.fileContext, resolution) {
 		resolution = append(resolution, node.fileContext)
 	}
 
@@ -88,7 +87,7 @@ func (this *DependencyGraph) addDependency(source *DependencyGraphNode, target *
 
 	for _, node := range this.nodes {
 
-		if(node.fileContext == target) {
+		if node.fileContext == target {
 
 			source.addNeighbor(node)
 			break
@@ -105,10 +104,10 @@ func (this *DependencyGraphNode) addNeighbor(neighbor *DependencyGraphNode) {
 */
 func elementExistsInSlice(element *FileContext, slice []*FileContext) bool {
 
-  for _, e := range slice {
-    if(e == element) {
-      return true
-    }
-  }
-  return false
+	for _, e := range slice {
+		if e == element {
+			return true
+		}
+	}
+	return false
 }
