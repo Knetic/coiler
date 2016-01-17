@@ -61,18 +61,22 @@ func NewFileContext(path string, context *BuildContext) (*FileContext, error) {
 */
 func (this *FileContext) TranslateLine(line string) string {
 
+	var keys []string
+
 	// ignore any top-level imports (but leave imports that are mid-line, since they're probably conditional)
 	if(strings.HasPrefix(line, "import") || (strings.HasPrefix(line, "from") && strings.Contains(line, "import"))) {
 		return ""
 	}
 
-	// translate any local or dependent symbols
-	for key, value := range this.localSymbols {
-		line = strings.Replace(line, key, this.context.TranslateSymbol(value), -1)
+	// TODO: need to make sure none of these replacements happen between valid python alphanumeric characters
+	keys = orderMapKeysByLength(this.localSymbols)
+	for _, key := range keys {
+		line = strings.Replace(line, key, this.context.TranslateSymbol(this.localSymbols[key]), -1)
 	}
 
-	for key, value := range this.dependentSymbols {
-		line = strings.Replace(line, key, this.context.TranslateSymbol(value), -1)
+	keys = orderMapKeysByLength(this.dependentSymbols)
+	for _, key := range keys {
+		line = strings.Replace(line, key, this.context.TranslateSymbol(this.dependentSymbols[key]), -1)
 	}
 
 	return line
@@ -124,4 +128,39 @@ func (this *FileContext) AddLocalSymbol(localName string) string {
 	this.localSymbols[localName] = qualifiedName
 
 	return qualifiedName
+}
+
+/*
+	Returns a list of keys where the longest keys are given first, shortest last.
+*/
+func orderMapKeysByLength(source map[string]string) []string {
+
+	var ret []string
+	var swap string
+	var length int
+	var index int
+
+	length = len(source)
+	ret = make([]string, length)
+	index = 0
+
+	// first just make the array
+	for key, _ := range source {
+		ret[index] = key
+		index++
+	}
+
+	// BUBBLE SORT!
+	for i := 0; i < length; i++ {
+		for z := 0; z < length-1; z++ {
+
+			if(len(ret[z]) < len(ret[z+1])) {
+				swap = ret[z]
+				ret[z] = ret[z+1]
+				ret[z+1] = swap
+			}
+		}
+	}
+
+	return ret
 }
