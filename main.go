@@ -38,6 +38,22 @@ func main() {
 	currentTime = time.Now()
 	elapsed = (currentTime.Unix() - startTime.Unix())
 	fmt.Printf("Took %dms to compile\n", elapsed)
+
+	if(!settings.ShouldCreateEmbedded) {
+		return
+	}
+
+	startTime = currentTime
+
+	err = coiler.CreateBinary(settings.OutputPath)
+	if(err != nil) {
+		printError(1, "\nUnable to create native binary: \n%v\n", err)
+		return
+	}
+
+	currentTime = time.Now()
+	elapsed = (currentTime.Unix() - startTime.Unix())
+	fmt.Printf("Took %dms to create native binary\n", elapsed)
 }
 
 func printError(status int, format string, args ...interface{}) {
