@@ -146,7 +146,8 @@ func (this *BuildContext) writeTranslatedFile(context *FileContext, outFile *os.
 	var err error
 
 	//fmt.Printf("\n\nFile Context: %s\n%v\nAnd dependent symbols: \n%v\n", context.namespace, context.localSymbols, context.dependentSymbols)
-
+	fmt.Printf("Translating source: %s\n", context.namespace)
+	
 	sourceFile, err = os.Open(context.fullPath)
 	if(err != nil) {
 		return err

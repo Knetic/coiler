@@ -3,6 +3,7 @@ package coiler
 import (
 	"path/filepath"
 	"strings"
+	"fmt"
 	"regexp"
 )
 
@@ -28,10 +29,12 @@ type FileContext struct {
 }
 
 var invalidPythonCharacters *regexp.Regexp
+var irreplaceableCharacters *regexp.Regexp
 
 func init() {
 
 	invalidPythonCharacters = regexp.MustCompile("[^a-zA-Z0-9_]")
+	irreplaceableCharacters = regexp.MustCompile("[a-zA-Z0-9_]")
 }
 
 func NewFileContext(path string, context *BuildContext) (*FileContext, error) {
@@ -71,12 +74,12 @@ func (this *FileContext) TranslateLine(line string) string {
 	// TODO: need to make sure none of these replacements happen between valid python alphanumeric characters
 	keys = orderMapKeysByLength(this.localSymbols)
 	for _, key := range keys {
-		line = strings.Replace(line, key, this.context.TranslateSymbol(this.localSymbols[key]), -1)
+		replaceSymbol(line, key, this.context.TranslateSymbol(this.localSymbols[key]))
 	}
 
 	keys = orderMapKeysByLength(this.dependentSymbols)
 	for _, key := range keys {
-		line = strings.Replace(line, key, this.context.TranslateSymbol(this.dependentSymbols[key]), -1)
+		replaceSymbol(line, key, this.context.TranslateSymbol(this.dependentSymbols[key]))
 	}
 
 	return line
@@ -163,4 +166,65 @@ func orderMapKeysByLength(source map[string]string) []string {
 	}
 
 	return ret
+}
+
+/*
+	Replaces all occurrences of [symbol] in the given [line], as long as
+	it is not surrounded by valid python alphanumeric identifiers.
+*/
+func replaceSymbol(line string, symbol string, replacement string) string {
+
+	var prefix, postfix []byte
+	var startIndex, endIndex int
+
+	endIndex = -1
+
+	for {
+
+		endIndex++
+		if(endIndex > len(line)) {
+			return line
+		}
+
+		startIndex = strings.Index(line[endIndex:], symbol)
+		if(startIndex < 0) {
+			return line
+		}
+
+		// TODO: make sure string literals (and comments?) don't get translated
+
+		startIndex += endIndex
+		endIndex = startIndex + len(symbol)
+
+		// if prefix is within range
+		if(startIndex-1 > 0) {
+
+			// if prefixed by an alphanumeric character
+			prefix = []byte(line[startIndex-1:startIndex])
+			if(irreplaceableCharacters.Match(prefix)) {
+
+				//fmt.Printf("Found a prefix replacement (%s) that shouldn't happen: line '%s', symbol: '%s'\n%d:%d\n\n", prefix, line, symbol, startIndex, endIndex)
+				continue
+			}
+		}
+
+		// if postfix is within range
+		if(endIndex < len(line)) {
+
+			// if postfixed by an alphanumeric character
+			postfix = []byte(line[endIndex:endIndex+1])
+			if(irreplaceableCharacters.Match(postfix)) {
+
+				//fmt.Printf("Found a postfix (%s) replacement that shouldn't happen: line '%s', symbol: '%s'\n%d:%d\n\n", postfix, line, symbol, startIndex, endIndex)
+				continue
+			}
+		}
+
+		// replace
+		line = line[0:startIndex] + replacement + line[endIndex:]
+		endIndex -= (len(symbol) - len(replacement))
+
+		fmt.Printf("replace in line: \n%ssymbol: %s\n\n", line, symbol)
+	}
+	return line
 }
