@@ -3,7 +3,6 @@ package coiler
 import (
 	"path/filepath"
 	"strings"
-	"fmt"
 	"regexp"
 )
 
@@ -223,8 +222,6 @@ func replaceSymbol(line string, symbol string, replacement string) string {
 		// replace
 		line = line[0:startIndex] + replacement + line[endIndex:]
 		endIndex -= (len(symbol) - len(replacement))
-
-		fmt.Printf("replace in line: \n%ssymbol: %s\n\n", line, symbol)
 	}
 	return line
 }

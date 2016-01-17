@@ -2,12 +2,10 @@ package coiler
 
 import (
 	"strings"
-	"fmt"
 	"os"
 	"os/exec"
-	"io"
+	"fmt"
 	"regexp"
-	"bufio"
 	"path/filepath"
 )
 
@@ -98,80 +96,6 @@ func (this *BuildContext) IsFileImported(module string) bool {
 }
 
 /*
-	Takes the current build context and writes a single combined source file to the given [targetPath]
-*/
-func (this *BuildContext) WriteCombinedOutput(targetPath string) error {
-
-	var fileContexts []*FileContext
-	var outFile *os.File
-	var line string
-	var err error
-
-	outFile, err = os.Create(targetPath)
-	if(err != nil) {
-
-		outFile, err = os.Open(targetPath)
-		if(err != nil) {
-			return err
-		}
-	}
-	defer outFile.Close()
-
-	// write external dependencies first
-	for _, dependency := range this.externalDependencies {
-
-		line = fmt.Sprintf("import %v\n", dependency)
-		outFile.Write([]byte(line))
-	}
-
-	this.dependencies.DiscoverNeighbors()
-	fileContexts = this.dependencies.GetOrderedNodes()
-
-	for _, context := range fileContexts {
-
-		err = this.writeTranslatedFile(context, outFile)
-		if(err != nil) {
-			return err
-		}
-	}
-	return nil
-}
-
-func (this *BuildContext) writeTranslatedFile(context *FileContext, outFile *os.File) error {
-
-	var sourceFile *os.File
-	var sourceReader *bufio.Reader
-	var line string
-	var rawLine []byte
-	var err error
-
-	//fmt.Printf("\n\nFile Context: %s\n%v\nAnd dependent symbols: \n%v\n", context.namespace, context.localSymbols, context.dependentSymbols)
-	fmt.Printf("Translating source: %s\n", context.namespace)
-	
-	sourceFile, err = os.Open(context.fullPath)
-	if(err != nil) {
-		return err
-	}
-	defer sourceFile.Close()
-
-	sourceReader = bufio.NewReader(sourceFile)
-
-	for {
-		rawLine, err = sourceReader.ReadBytes('\n')
-		if(err != nil) {
-			if(err == io.EOF) {
-				break
-			}
-			return err
-		}
-
-		line = context.TranslateLine(string(rawLine))
-		outFile.Write([]byte(line))
-	}
-	return nil
-}
-
-/*
 	Searches this context's lookup paths to find the appropriate file to provide the given [module].
 */
 func (this *BuildContext) FindSourcePath(module string) string {
@@ -194,8 +118,8 @@ func (this *BuildContext) AddExternalDependency(module string) {
 	this.externalDependencies = append(this.externalDependencies, module)
 }
 
-func (this *BuildContext) String() string {
-	return fmt.Sprintf("External: %v\nImported: %v\nSymbols: %v\n", this.externalDependencies, this.importedFiles, this.symbols)
+func (this *BuildContext) GetCombinedFileCount() int {
+	return len(this.dependencies.nodes)
 }
 
 /*

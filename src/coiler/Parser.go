@@ -1,13 +1,8 @@
 package coiler
 
 import (
-	"io"
 	"io/ioutil"
-	"path/filepath"
 	"fmt"
-	"errors"
-	"os"
-	"os/exec"
 	"strings"
 	"regexp"
 )
@@ -40,11 +35,9 @@ func init() {
 	Parses the given [inputPath], traverses and processes all dependent imports (combining as required),
 	and uses python to compile a real executable to the given [outputPath].
 */
-func Parse(inputPath string, outputPath string, useSystemPaths bool) error {
+func Parse(inputPath string, useSystemPaths bool) (*BuildContext, error) {
 
 	var context *BuildContext
-	var precompiledOutputPath string
-	var compiledName, precompiledName, baseName string
 	var err error
 
 	context = NewBuildContext(useSystemPaths)
@@ -52,36 +45,10 @@ func Parse(inputPath string, outputPath string, useSystemPaths bool) error {
 	// combine in context
 	_, err = parse(inputPath, context)
 	if(err != nil) {
-		return err
+		return nil, err
 	}
 
-	precompiledOutputPath, err = ioutil.TempDir("", "coiler")
-	if(err != nil) {
-		return err
-	}
-
-	baseName = filepath.Base(outputPath)
-	baseName = strings.TrimSuffix(baseName, filepath.Ext(baseName))
-	precompiledName = fmt.Sprintf("%s/%s.py", precompiledOutputPath, baseName)
-
-	if(strings.HasSuffix(baseName, ".pyc")) {
-		compiledName = fmt.Sprintf("%s/%s", precompiledOutputPath, baseName)
-	} else {
-		compiledName = fmt.Sprintf("%s/%s.pyc", precompiledOutputPath, baseName)
-	}
-
-	err = context.WriteCombinedOutput(precompiledName)
-	if(err != nil) {
-		return err
-	}
-
-	err = callPythonCompiler(precompiledOutputPath)
-	if(err != nil) {
-		return err
-	}
-
-	err = copyFile(compiledName, outputPath)
-	return err
+	return context, nil
 }
 
 func parse(path string, context *BuildContext) (*FileContext, error) {
@@ -102,8 +69,6 @@ func parse(path string, context *BuildContext) (*FileContext, error) {
 	if(err != nil) {
 		return nil, err
 	}
-
-	fmt.Printf("Combining module '%s'\n", fileContext.namespace)
 
 	context.AddDependency(fileContext)
 	go readLines(string(contents), sourceChannel)
@@ -281,50 +246,4 @@ func addSymbolToContexts(symbol string, fileContext *FileContext, buildContext *
 
 	qualifiedName = fileContext.AddLocalSymbol(symbol)
 	buildContext.AddSymbol(qualifiedName)
-}
-
-func callPythonCompiler(targetPath string) error {
-
-	var compiler *exec.Cmd
-	var arguments []string
-	var output []byte
-	var err error
-
-	arguments = []string {"-m", "compileall", targetPath}
-
-	compiler = exec.Command("python", arguments...)
-
-	fmt.Println("Calling python compiler")
-	output, err = compiler.CombinedOutput()
-
-	if(err != nil) {
-		errorMsg := fmt.Sprintf("Compile failed:\n%s\n%v\n", string(output), err)
-		return errors.New(errorMsg)
-	}
-	return nil
-}
-
-/*
-	Brute copy from [source] to [target].
-*/
-func copyFile(source, target string) error {
-
-	var sourceFile, targetFile *os.File
-	var err error
-
-	sourceFile, err = os.Open(source)
-	if(err != nil) {
-		return err
-	}
-	defer sourceFile.Close()
-
-	targetFile, err = os.Create(target)
-	if(err != nil) {
-		return err
-	}
-	targetFile.Chmod(0755)
-	defer targetFile.Close()
-
-	_, err = io.Copy(sourceFile, targetFile)
-	return err
 }
