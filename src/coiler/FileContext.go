@@ -69,15 +69,15 @@ func (this *FileContext) TranslateLine(line string) string {
 		return ""
 	}
 
-	// TODO: need to make sure none of these replacements happen between valid python alphanumeric characters
+	// TODO: handle multi-line imports
 	keys = orderMapKeysByLength(this.localSymbols)
 	for _, key := range keys {
-		replaceSymbol(line, key, this.context.TranslateSymbol(this.localSymbols[key]))
+		line = replaceSymbol(line, key, this.context.TranslateSymbol(this.localSymbols[key]))
 	}
 
 	keys = orderMapKeysByLength(this.dependentSymbols)
 	for _, key := range keys {
-		replaceSymbol(line, key, this.context.TranslateSymbol(this.dependentSymbols[key]))
+		line = replaceSymbol(line, key, this.context.TranslateSymbol(this.dependentSymbols[key]))
 	}
 
 	return line
