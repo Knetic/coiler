@@ -89,7 +89,7 @@ func copyFile(source, target string) error {
 	targetFile.Chmod(0755)
 	defer targetFile.Close()
 
-	_, err = io.Copy(sourceFile, targetFile)
+	_, err = io.Copy(targetFile, sourceFile)
 	return err
 }
 

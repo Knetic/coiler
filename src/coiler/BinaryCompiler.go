@@ -87,6 +87,12 @@ long extractPYC(FILE* sourceFile)
 	return -1;
 }
 
+char *gnu_basename(char *path)
+{
+    char *base = strrchr(path, '/');
+    return base ? base+1 : path;
+}
+
 int main(const int arc, const char** argv)
 {
 	FILE* executable;
@@ -119,7 +125,7 @@ int main(const int arc, const char** argv)
 
 	Py_SetProgramName(argv[0]);
 	Py_Initialize();
-	status = PyRun_SimpleFile(executable, "coiler!");
+	status = PyRun_SimpleFile(executable, gnu_basename(argv[0]));
 	Py_Finalize();
 	return status;
 }
@@ -245,7 +251,7 @@ func appendApplication(source string, target string) error {
 	}
 	defer targetFile.Close()
 
-	sourceFile, err = os.OpenFile(source, os.O_RDONLY, 0644)
+	sourceFile, err = os.Open(source)
 	if(err != nil) {
 		return err
 	}
