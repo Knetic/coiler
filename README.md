@@ -3,8 +3,11 @@ coiler
 
 Coiler is a tool to create a single \*.pyc file from multiple \*.py files. It can be compared to a JS minifier (though it doesn't try to minify source code, just concatenate it into a single output), or a static compiler (though it produces python bytecode, not real machinecode.)
 
-Why would I use this?
-====
+# NON-FUNCTIONAL
+
+Coiler was an experiment which didn't pan out. It doesn't work, and there are structural reasons in Python for why it will probably never _really_ work as well as it ought to. For details, see FAILURE.md.
+
+##Why would I use this?
 
 Creating a single executable has a lot of operational benefits. Library version conflicts, installation issues, and module naming become problems at _build time_, and cannot be encountered at runtime. This greatly reduces the amount of fear and pain involved in deploying code to machines that were not used to develop it. It also prevents the need to rigorously maintain a production machine's libraries separately from the application(s) running on them (and so obsoletes `virtualenv`). And of course, this eliminates the need to force a client to install a bunch of other non-core tools like `pip`, `easy_install`, `distutils`, or whatever other pseudo-packaging tool is out there - your executable becomes a single file that can be run on any machine with a Python installation (not as good as being able to run on any machine period, but still pretty good for Python).
 
@@ -14,12 +17,6 @@ As a side benefit, if you choose to use the "static" mode, the standard library 
 
 *To summarize*, coiling your python code makes it easier to deploy, more reliable to run, and more repeatable across machines without the need of clients running some new packaging tool.
 
-What is required?
-====
+##What is required?
 
 You will need the tool `python` and the `compileall` module available on the default system search path. It doesn't matter which version of python you have, but bear in mind that `coiler` will use that default version of python to discover library search paths and compile scripts - so be sure it's the version you want to use.
-
-Be real with me, should I really use this?
-====
-
-No. This is not yet production-ready.
