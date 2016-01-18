@@ -21,6 +21,7 @@ const (
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <Python.h>
 
 int memsearch(const char *hay, int haysize, const char *needle, int needlesize) {
     int haypos, needlepos;
@@ -86,16 +87,17 @@ long extractPYC(FILE* sourceFile)
 	return -1;
 }
 
-void main(const int arc, const char** argv)
+int main(const int arc, const char** argv)
 {
 	FILE* executable;
 	long applicationOffset;
+	int status;
 
 	executable = fopen(argv[0], "r");
 	if(executable == 0)
 	{
 		printf("Unable to read own executable\n");
-		return;
+		return 1;
 	}
 
 	applicationOffset = extractPYC(executable);
@@ -104,12 +106,22 @@ void main(const int arc, const char** argv)
 	if(applicationOffset < 0)
 	{
 		printf("Unable to find PYC application code\n");
-		return;
+		return 1;
 	}
 
-	printf("Found it, alright: %d\n", applicationOffset);
 	executable = fopen(argv[0], "r");
-	fclose(executable);
+	status = fseek(executable, applicationOffset, 0);
+	if(status != 0)
+	{
+		printf("Unable to skip to pyc application\n");
+		return 1;
+	}
+
+	Py_SetProgramName(argv[0]);
+	Py_Initialize();
+	status = PyRun_SimpleFile(executable, "coiler!");
+	Py_Finalize();
+	return status;
 }
 `
 
@@ -173,13 +185,39 @@ func compileEmbedded(sourcePath string, targetPath string) error {
 	var compiler *exec.Cmd
 	var arguments []string
 	var rawOutput []byte
+	var output string
 	var err error
 
-	arguments = []string {
-		"-o",
-		targetPath,
-		sourcePath,
+	// first, call pythonX.Y-config to get list of includes needed into order to embed python
+	compiler = exec.Command("python2.7-config", "--cflags")
+	rawOutput, err = compiler.Output()
+
+	if(err != nil) {
+		errorMsg := fmt.Sprintf("%v\n%v\n", err.Error(), string(rawOutput))
+		return errors.New(errorMsg)
 	}
+	output = string(rawOutput)
+	output = strings.Replace(output, "\n", "", -1)
+	output = strings.Replace(output, "  ", " ", -1)
+	arguments = strings.Split(output, " ")
+
+	// set up output
+	arguments = append(arguments, "-o")
+	arguments = append(arguments, targetPath)
+	arguments = append(arguments, sourcePath)
+
+	// linker arguments
+	compiler = exec.Command("python2.7-config", "--ldflags")
+	rawOutput, err = compiler.Output()
+
+	if(err != nil) {
+		errorMsg := fmt.Sprintf("%v\n%v\n", err.Error(), string(rawOutput))
+		return errors.New(errorMsg)
+	}
+	output = string(rawOutput)
+	output = strings.Replace(output, "\n", "", -1)
+	output = strings.Replace(output, "  ", " ", -1)
+	arguments = append(arguments, strings.Split(output, " ")...)
 
 	compiler = exec.Command("gcc", arguments...)
 	rawOutput, err = compiler.CombinedOutput()
