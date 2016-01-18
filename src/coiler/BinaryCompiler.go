@@ -6,14 +6,14 @@ package coiler
 	taking the source for that interpreter from the same file as the executable (the pyc code is appendedto the end of the executable)
 */
 import (
+	"errors"
+	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
-	"fmt"
-	"os"
-	"io"
-	"errors"
-	"os/exec"
 )
 
 const (
@@ -134,7 +134,7 @@ int main(const int arc, const char** argv)
 	MAGIC_STRING = "COILER:"
 )
 
-var NUL_ENTRIES = []byte {
+var NUL_ENTRIES = []byte{
 	0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0,
 	0, 0, 0, 0, 0,
@@ -159,7 +159,7 @@ func CreateBinary(sourcePath string) error {
 
 	precompiledPath = filepath.Join(precompiledPath, (baseName + ".c"))
 	compiledPath, err = filepath.Abs(sourcePath)
-	if(err != nil) {
+	if err != nil {
 		return err
 	}
 
@@ -167,12 +167,12 @@ func CreateBinary(sourcePath string) error {
 	compiledPath = filepath.Join(compiledPath, baseName)
 
 	err = writeEmbeddedSource(precompiledPath)
-	if(err != nil) {
+	if err != nil {
 		return err
 	}
 
- 	err = compileEmbedded(precompiledPath, compiledPath)
-	if(err != nil) {
+	err = compileEmbedded(precompiledPath, compiledPath)
+	if err != nil {
 		return err
 	}
 
@@ -198,7 +198,7 @@ func compileEmbedded(sourcePath string, targetPath string) error {
 	compiler = exec.Command("python2.7-config", "--cflags")
 	rawOutput, err = compiler.Output()
 
-	if(err != nil) {
+	if err != nil {
 		errorMsg := fmt.Sprintf("%v\n%v\n", err.Error(), string(rawOutput))
 		return errors.New(errorMsg)
 	}
@@ -216,7 +216,7 @@ func compileEmbedded(sourcePath string, targetPath string) error {
 	compiler = exec.Command("python2.7-config", "--ldflags")
 	rawOutput, err = compiler.Output()
 
-	if(err != nil) {
+	if err != nil {
 		errorMsg := fmt.Sprintf("%v\n%v\n", err.Error(), string(rawOutput))
 		return errors.New(errorMsg)
 	}
@@ -228,7 +228,7 @@ func compileEmbedded(sourcePath string, targetPath string) error {
 	compiler = exec.Command("gcc", arguments...)
 	rawOutput, err = compiler.CombinedOutput()
 
-	if(err != nil) {
+	if err != nil {
 		errorMsg := fmt.Sprintf("%v\n%v\n", err.Error(), string(rawOutput))
 		return errors.New(errorMsg)
 	}
@@ -245,14 +245,14 @@ func appendApplication(source string, target string) error {
 	var sourceFile, targetFile *os.File
 	var err error
 
-	targetFile, err = os.OpenFile(target, os.O_APPEND | os.O_WRONLY, 0755)
-	if(err != nil) {
+	targetFile, err = os.OpenFile(target, os.O_APPEND|os.O_WRONLY, 0755)
+	if err != nil {
 		return err
 	}
 	defer targetFile.Close()
 
 	sourceFile, err = os.Open(source)
-	if(err != nil) {
+	if err != nil {
 		return err
 	}
 	defer sourceFile.Close()

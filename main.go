@@ -39,14 +39,14 @@ func main() {
 	elapsed = (currentTime.Unix() - startTime.Unix())
 	fmt.Printf("Took %dms to compile\n", elapsed)
 
-	if(!settings.ShouldCreateEmbedded) {
+	if !settings.ShouldCreateEmbedded {
 		return
 	}
 
 	startTime = currentTime
 
 	err = coiler.CreateBinary(settings.OutputPath)
-	if(err != nil) {
+	if err != nil {
 		printError(1, "\nUnable to create native binary: \n%v\n", err)
 		return
 	}

@@ -5,9 +5,9 @@ import (
 )
 
 type RunSettings struct {
-	CombineMode    string
-	EntryPointPath string
-	OutputPath     string
+	CombineMode          string
+	EntryPointPath       string
+	OutputPath           string
 	ShouldCreateEmbedded bool
 }
 
