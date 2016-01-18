@@ -19,14 +19,101 @@ import (
 const (
 	EMBEDDED_SOURCE = `
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
-void main(const int arc, const char** arv)
+int memsearch(const char *hay, int haysize, const char *needle, int needlesize) {
+    int haypos, needlepos;
+    haysize -= needlesize;
+    for (haypos = 0; haypos <= haysize; haypos++) {
+        for (needlepos = 0; needlepos < needlesize; needlepos++) {
+            if (hay[haypos + needlepos] != needle[needlepos]) {
+                // Next character in haystack.
+                break;
+            }
+        }
+        if (needlepos == needlesize) {
+            return haypos;
+        }
+    }
+    return -1;
+}
+
+/*
+	Searches for the magic string, returning the byte offset at which data can be read after the magic string.
+	-1 indicates no magic string found.
+*/
+long extractPYC(FILE* sourceFile)
 {
-		printf("Hello, embedded world!\n");
+	char buffer[256];
+	char searchString[30];
+	size_t subIndex;
+	size_t frontBuffer;
+	long offset;
+	int bytesRead;
+
+	frontBuffer = buffer + 128;
+	subIndex = -1;
+	offset = 0;
+
+	// form the magic string to search for.
+	for(int i = 0; i < 23; i++)
+		searchString[i] = '\0';
+	memcpy(searchString + 23, "COILER:", 7);
+
+	while(1)
+	{
+		// move front half to the back
+		memcpy(buffer, frontBuffer, 128);
+
+		// read data to front
+		bytesRead = fread(frontBuffer, 1, 128, sourceFile);
+
+		// eof?
+		if(bytesRead <= 0)
+			break;
+
+		subIndex = memsearch(buffer, 256, searchString, 30);
+		if(subIndex != -1)
+		{
+			offset += subIndex - 128;
+			return offset;
+		}
+
+		offset += bytesRead;
+	}
+
+	return -1;
+}
+
+void main(const int arc, const char** argv)
+{
+	FILE* executable;
+	long applicationOffset;
+
+	executable = fopen(argv[0], "r");
+	if(executable == 0)
+	{
+		printf("Unable to read own executable\n");
+		return;
+	}
+
+	applicationOffset = extractPYC(executable);
+	fclose(executable);
+
+	if(applicationOffset < 0)
+	{
+		printf("Unable to find PYC application code\n");
+		return;
+	}
+
+	printf("Found it, alright: %d\n", applicationOffset);
+	executable = fopen(argv[0], "r");
+	fclose(executable);
 }
 `
 
-	MAGIC_STRING = "COILER_SRC:"
+	MAGIC_STRING = "COILER:"
 )
 
 var NUL_ENTRIES = []byte {
